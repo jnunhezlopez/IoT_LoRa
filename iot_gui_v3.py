@@ -76,14 +76,15 @@ time_data = []
 
 # Función para actualizar la gráfica
 def update_plot():
+    
     time_data.append(len(time_data))
     temperature_data.append(current_temperature)
     humidity_data.append(current_humidity)
 
-    if len(time_data) > 50:  # Limitar a 50 puntos para claridad
-        time_data.pop(0)
-        temperature_data.pop(0)
-        humidity_data.pop(0)
+    # if len(time_data) > 50:  # Limitar a 50 puntos para claridad
+    #     time_data.pop(0)
+    #     temperature_data.pop(0)
+    #     humidity_data.pop(0)
 
     ax.clear()
     ax.plot(time_data, temperature_data, label='Temperatura (°C)', color='red')
@@ -141,18 +142,23 @@ canvas_scroll.configure(yscrollcommand=scrollbar.set)
 canvas_scroll.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-frame = ttk.Frame(scrollable_frame, padding="10")
-frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+# Configure grid layout for scrollable_frame
+scrollable_frame.columnconfigure(0, weight=1)  # Left column for controls
+scrollable_frame.columnconfigure(1, weight=2)  # Right column for FigureCanvas
+
+# Left side (controls)
+controls_frame = ttk.Frame(scrollable_frame, padding="10")
+controls_frame.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.W, tk.E))
 
 # Etiquetas para mostrar datos
-temperature_label = ttk.Label(frame, text="Temperatura: 0.00 °C", font=("Arial", 14))
-temperature_label.grid(row=0, column=0, pady=10, sticky=tk.W)
+temperature_label = ttk.Label(controls_frame, text="Temperatura: 0.00 °C", font=("Arial", 10))
+temperature_label.grid(row=0, column=0, pady=5, sticky=tk.W)
 
-humidity_label = ttk.Label(frame, text="Humedad: 0.00 %", font=("Arial", 14))
-humidity_label.grid(row=1, column=0, pady=10, sticky=tk.W)
+humidity_label = ttk.Label(controls_frame, text="Humedad: 0.00 %", font=("Arial", 10))
+humidity_label.grid(row=1, column=0, pady=5, sticky=tk.W)
 
 # Controles para configurar límites
-limits_frame = ttk.LabelFrame(frame, text="Configuración de Límites", padding="10")
+limits_frame = ttk.LabelFrame(controls_frame, text="Configuración de Límites", padding="10")
 limits_frame.grid(row=2, column=0, pady=10, sticky=(tk.W, tk.E))
 
 min_temp_label = ttk.Label(limits_frame, text="Temperatura mínima:")
@@ -183,23 +189,29 @@ save_button = ttk.Button(limits_frame, text="Guardar", command=save_limits)
 save_button.grid(row=4, column=0, columnspan=2, pady=10)
 
 # Controles para configurar el intervalo de envío
-interval_frame = ttk.LabelFrame(frame, text="Configuración de Intervalo", padding="10")
+interval_frame = ttk.LabelFrame(controls_frame, text="Configuración de Intervalo", padding="10")
 interval_frame.grid(row=3, column=0, pady=10, sticky=(tk.W, tk.E))
 
 interval_label = ttk.Label(interval_frame, text="Intervalo de envío (ms):")
 interval_label.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
 interval_entry = ttk.Entry(interval_frame, width=10)
 interval_entry.grid(row=0, column=1, padx=5, pady=5)
-interval_entry.insert(0, "1000")  # Valor predeterminado: 1000 ms
+interval_entry.insert(0, "5000")  # Valor predeterminado: 5000 ms
 
 set_interval_button = ttk.Button(interval_frame, text="Configurar", command=set_interval)
 set_interval_button.grid(row=1, column=0, columnspan=2, pady=10)
 
-# Canvas para la gráfica
-canvas = FigureCanvasTkAgg(fig, master=frame)
+# Right side (FigureCanvas)
+canvas = FigureCanvasTkAgg(fig, master=scrollable_frame)
 canvas_widget = canvas.get_tk_widget()
-canvas_widget.grid(row=4, column=0, pady=10, sticky=(tk.W, tk.E))
-canvas_widget.configure(width=680, height=340)  # Ajuste explícito del tamaño del canvas
+canvas_widget.configure(width=400, height=300)
+canvas_widget.grid(row=0, column=1, padx=10, pady=10, sticky=(tk.N, tk.S, tk.E, tk.W))
+
+# Make canvas_widget responsive
+root.rowconfigure(0, weight=1)
+root.columnconfigure(0, weight=1)
+scrollable_frame.rowconfigure(0, weight=1)
+scrollable_frame.columnconfigure(1, weight=1)
 
 # Configuración del cliente MQTT
 client = mqtt.Client()
@@ -213,7 +225,7 @@ def on_connect(client, userdata, flags, rc):
         print(f"Conexión fallida, código de error {rc}")
 
 client.on_connect = on_connect
-client.connect("localhost", 1883, 60)  # Ajusta según la configuración de tu broker MQTT
+client.connect("192.168.0.28", 1883, 60)  # Ajusta según la configuración de tu broker MQTT
 client.loop_start()
 init_db()
 root.mainloop()
